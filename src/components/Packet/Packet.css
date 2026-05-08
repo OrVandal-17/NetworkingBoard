@@ -1,0 +1,4 @@
+.packet {
+  pointer-events: none;
+  transition: opacity 0.1s;
+}

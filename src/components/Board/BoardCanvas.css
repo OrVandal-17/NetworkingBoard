@@ -1,0 +1,33 @@
+.board-canvas {
+  position: relative;
+  height: 260px;
+  background-image:
+    repeating-linear-gradient(0deg,   transparent, transparent 39px, #0f1820 39px, #0f1820 40px),
+    repeating-linear-gradient(90deg,  transparent, transparent 39px, #0f1820 39px, #0f1820 40px);
+}
+
+.board-canvas__svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.board-link {
+  stroke: #1a2f45;
+  stroke-width: 3;
+  stroke-dasharray: 8 5;
+}
+
+.board-link__label {
+  font-size: 9px;
+  fill: #2a3a50;
+  letter-spacing: 0.05em;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.board-canvas__hint {
+  pointer-events: none;
+  opacity: 0.6;
+}

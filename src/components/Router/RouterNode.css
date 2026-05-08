@@ -1,0 +1,49 @@
+.router-node {
+  overflow: visible;
+}
+
+.router-node--clickable {
+  cursor: pointer;
+}
+
+.router-body {
+  transition: stroke 0.25s, fill 0.25s;
+}
+
+.router-port {
+  transition: fill 0.2s, opacity 0.2s;
+}
+
+.router-led {
+  transition: fill 0.15s;
+}
+
+.router-led--active {
+  filter: drop-shadow(0 0 4px currentColor);
+}
+
+/* Hover ring & hint — revealed on hover */
+.router-node--clickable:hover .router-node__hover-ring {
+  opacity: 0.35 !important;
+  transition: opacity 0.15s;
+}
+
+.router-node__hover-ring {
+  transition: opacity 0.15s;
+}
+
+.router-node__cli-hint {
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+
+.router-node--clickable:hover .router-node__cli-hint {
+  opacity: 1;
+  fill: #378ADD;
+}
+
+/* Pulse animation for TX */
+@keyframes router-tx-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}

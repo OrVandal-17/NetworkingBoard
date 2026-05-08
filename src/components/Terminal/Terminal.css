@@ -1,0 +1,46 @@
+.terminal {
+  background: #060a0d;
+  border-top: 1px solid #1a2530;
+  padding: 12px 16px;
+  height: 200px;
+  overflow-y: auto;
+  font-size: 12px;
+  line-height: 1.65;
+  font-family: "JetBrains Mono", "Fira Mono", monospace;
+  scrollbar-width: thin;
+  scrollbar-color: #1a2530 #060a0d;
+}
+
+.terminal::-webkit-scrollbar { width: 4px; }
+.terminal::-webkit-scrollbar-track { background: #060a0d; }
+.terminal::-webkit-scrollbar-thumb { background: #1a2530; border-radius: 2px; }
+
+.terminal__line {
+  white-space: pre;
+  color: #7ee787; /* default */
+}
+
+.terminal__line--cmd  { color: #79c0ff; }
+.terminal__line--ok   { color: #7ee787; }
+.terminal__line--err  { color: #f85149; }
+.terminal__line--info { color: #d2a8ff; }
+.terminal__line--stat { color: #e3b341; }
+.terminal__line--dim  { color: #555555; }
+
+.terminal__cursor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #555;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+}
+
+.terminal__cursor-blink {
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
