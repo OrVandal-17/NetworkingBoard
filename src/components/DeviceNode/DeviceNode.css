@@ -1,0 +1,73 @@
+.device-node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: grab;
+  user-select: none;
+  transform: translate(-50%, -50%);
+}
+
+.device-node:active { cursor: grabbing; }
+
+.device-node__icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 4px;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.device-node__icon:hover {
+  background: rgba(55, 138, 221, 0.08);
+  box-shadow: 0 0 0 1px rgba(55, 138, 221, 0.2);
+}
+
+.device-node__icon--selected {
+  background: rgba(55, 138, 221, 0.12) !important;
+  box-shadow: 0 0 0 1.5px #378ADD !important;
+}
+
+.device-node__label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: #7a8fa0;
+  white-space: nowrap;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.device-node__sublabel {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  color: #3a5060;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.device-node--offline .device-node__label { color: #4a3030; }
+.device-node--offline .device-node__sublabel { color: #3a2020; }
+
+.device-node__hint {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  font-size: 8px;
+  color: #1a3a55;
+  font-family: "JetBrains Mono", monospace;
+  background: #060a0d;
+  border-radius: 3px;
+  padding: 1px 3px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+  pointer-events: none;
+}
+
+.device-node__icon:hover .device-node__hint {
+  opacity: 1;
+  color: #378ADD;
+}

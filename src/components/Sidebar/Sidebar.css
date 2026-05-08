@@ -1,0 +1,139 @@
+.sidebar {
+  width: 160px;
+  flex-shrink: 0;
+  background: #0a0e12;
+  border-right: 1px solid #1a2530;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #1a2530 transparent;
+}
+
+.sidebar__section-title {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  color: #2a3a4a;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 14px 12px 6px;
+  border-bottom: 1px solid #0f1820;
+}
+
+/* Catalog items — draggable */
+.sidebar__catalog {
+  padding: 8px 0;
+}
+
+.sidebar__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px;
+  cursor: grab;
+  border-bottom: 1px solid #0d1520;
+  transition: background 0.12s;
+  user-select: none;
+}
+
+.sidebar__item:active { cursor: grabbing; }
+
+.sidebar__item:hover {
+  background: rgba(55, 138, 221, 0.06);
+}
+
+.sidebar__item:hover .sidebar__item-label {
+  color: #79c0ff;
+}
+
+.sidebar__item__icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.75;
+  transition: opacity 0.12s;
+}
+
+.sidebar__item:hover .sidebar__item__icon-wrap {
+  opacity: 1;
+}
+
+.sidebar__item-label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: #4a6a80;
+  transition: color 0.12s;
+}
+
+.sidebar__item-desc {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 8px;
+  color: #2a3a4a;
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* Devices list section */
+.sidebar__device-list {
+  flex: 1;
+  padding: 6px 0;
+  overflow-y: auto;
+}
+
+.sidebar__device-entry {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.12s;
+  border-bottom: 1px solid #0d1520;
+}
+
+.sidebar__device-entry:hover {
+  background: rgba(55, 138, 221, 0.05);
+}
+
+.sidebar__device-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sidebar__device-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar__device-name {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9.5px;
+  color: #5a7a90;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar__device-ip {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 8px;
+  color: #2a3a4a;
+  white-space: nowrap;
+}
+
+/* Footer area */
+.sidebar__footer {
+  padding: 10px 12px;
+  border-top: 1px solid #0f1820;
+}
+
+.sidebar__stat {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  color: #2a3a4a;
+  margin-bottom: 3px;
+}

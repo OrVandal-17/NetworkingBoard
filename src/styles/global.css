@@ -1,32 +1,123 @@
-/* ── Reset ───────────────────────────────────────────── */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ── Base ────────────────────────────────────────────── */
 html, body, #root {
   height: 100%;
+  width: 100%;
+  overflow: hidden;
 }
 
 body {
   font-family: "JetBrains Mono", "Fira Mono", "Courier New", monospace;
-  background: #0a0e12;
+  background: #070c10;
   color: #c9d1d9;
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── App layout ──────────────────────────────────────── */
+/* ── App shell ── */
 .app {
-  min-height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
 }
 
-.app__inner {
-  width: 100%;
-  max-width: 760px;
+/* ── Top bar ── */
+.app__topbar {
+  height: 38px;
+  flex-shrink: 0;
+  background: #0a0e12;
+  border-bottom: 1px solid #1a2530;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 14px;
+  z-index: 20;
 }
+
+.app__topbar-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #1D9E75;
+  box-shadow: 0 0 6px #1D9E75;
+}
+
+.app__topbar-title {
+  font-size: 11px;
+  color: #4a7a90;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.app__topbar-sep { color: #1a2530; font-size: 12px; }
+
+.app__topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.app__topbar-badge {
+  font-size: 9px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: #0d1318;
+  color: #3a5060;
+  border: 1px solid #1a2530;
+  font-family: "JetBrains Mono", monospace;
+}
+
+/* ── Main body: sidebar + canvas + bottom panel ── */
+.app__body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.app__center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Bottom terminal panel ── */
+.app__terminal {
+  height: 170px;
+  flex-shrink: 0;
+  border-top: 1px solid #1a2530;
+  display: flex;
+  flex-direction: column;
+  background: #060a0d;
+}
+
+.app__terminal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 14px;
+  border-bottom: 1px solid #0f1820;
+  background: #080c10;
+}
+
+.app__terminal-title {
+  font-size: 9px;
+  color: #2a3a4a;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.app__terminal-clear {
+  margin-left: auto;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #1a2530;
+  background: none;
+  color: #2a3a4a;
+  cursor: pointer;
+  transition: color 0.12s;
+}
+.app__terminal-clear:hover { color: #79c0ff; }

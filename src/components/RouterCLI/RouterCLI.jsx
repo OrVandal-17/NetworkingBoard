@@ -4,22 +4,22 @@ import { useRouterCLI } from "./useRouterCLI";
 
 /**
  * RouterCLI
- * Modal CLI terminal for per-router configuration.
+ * Modal CLI terminal for per-device configuration.
  *
  * Props:
- *   router    - the router being configured
+ *   device    - the device being configured
  *   routers   - full routers map (for ARP / neighbor display)
  *   onUpdate  - (id, patch) => void  — from useRouterStore.updateRouter
  *   onPing    - ({ srcId, dstIp, count, ttl, onLog }) => void — from usePing.run
  *   onClose   - () => void
  */
-export function RouterCLI({ router, routers, onUpdate, onPing, onClose }) {
+export function RouterCLI({ device, devices, onUpdate, onPing, onClose }) {
   const outputRef = useRef(null);
   const inputRef  = useRef(null);
   const [input, setInput] = useState("");
 
   const { lines, history, histIdx, setHistIdx, exec } = useRouterCLI({
-    router, routers, onUpdate, onPing, onClose,
+    device, devices, onUpdate, onPing, onClose,
   });
 
   // Auto-scroll output
@@ -74,7 +74,7 @@ export function RouterCLI({ router, routers, onUpdate, onPing, onClose }) {
     [input, exec, history, histIdx, setHistIdx]
   );
 
-  const offline = router.status !== "online";
+  const offline = device.status !== "online";
 
   return (
     <div className="rcli-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -88,7 +88,7 @@ export function RouterCLI({ router, routers, onUpdate, onPing, onClose }) {
             <div className="rcli-dot rcli-dot--max" />
           </div>
           <span className="rcli-titlebar__title">
-            {router.name} — {router.ip}/{router.prefix ?? 24} — {router.interface}
+            {device.name} — {device.ip ? `${device.ip}/${device.prefix ?? 24}` : "L2"} — {device.interface ?? "ETH0"}
           </span>
           <span className={`rcli-titlebar__badge${offline ? " rcli-titlebar__badge--offline" : ""}`}>
             {offline ? "OFFLINE" : "ONLINE"}
@@ -110,7 +110,7 @@ export function RouterCLI({ router, routers, onUpdate, onPing, onClose }) {
         {/* Input row */}
         <div className="rcli-inputrow" onClick={() => inputRef.current?.focus()}>
           <span className="rcli-inputrow__prompt">
-            {router.name}#
+            {device.name}#
           </span>
           <input
             ref={inputRef}
