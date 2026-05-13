@@ -1,40 +1,19 @@
 import "./DeviceNode.css";
 import { DeviceIcon } from "./icons";
+import { primaryIp }  from "../../data/devices";
 
-/**
- * DeviceNode
- * A device rendered on the canvas at absolute position (device.x, device.y).
- * Handles drag, click-to-configure, and selection.
- *
- * Props:
- *   device     - { id, type, name, ip, prefix, status, x, y }
- *   led        - "idle" | "tx" | "rx"
- *   selected   - boolean
- *   onDragStart - (e, deviceId) => void
- *   onPress     - (deviceId) => void
- */
 export function DeviceNode({ device, led = "idle", selected, onDragStart, onPress }) {
-  const active  = led !== "idle" || device.status === "online";
   const offline = device.status !== "online";
+  const primary = primaryIp(device);
 
-  const handleMouseDown = (e) => {
-    // Left button drag
-    if (e.button === 0) {
-      e.stopPropagation();
-      onDragStart?.(e, device.id);
-    }
+  const handleMouseDown = e => {
+    if (e.button === 0) { e.stopPropagation(); onDragStart?.(e, device.id); }
   };
 
-  const handleClick = (e) => {
-    e.stopPropagation();
-    onPress?.(device.id);
-  };
-
+  // Sublabel: IP primaire ou nombre de ports
   const subLabel = device.type === "switch"
-    ? `${device.ports ?? 8} ports`
-    : device.ip
-      ? `${device.ip}/${device.prefix ?? 24}`
-      : "";
+    ? `${(device.interfaces ?? []).filter(i => i.linked).length}/${(device.interfaces ?? []).filter(i=>i.type==="fastethernet").length} ports`
+    : primary ? `${primary.ip}/${primary.prefix}` : "non configuré";
 
   return (
     <div
@@ -44,20 +23,19 @@ export function DeviceNode({ device, led = "idle", selected, onDragStart, onPres
     >
       <div
         className={`device-node__icon${selected ? " device-node__icon--selected" : ""}`}
-        onClick={handleClick}
+        onClick={e => { e.stopPropagation(); onPress?.(device.id); }}
         title={`Configurer ${device.name}`}
       >
         <DeviceIcon
           type={device.type}
-          active={active}
+          interfaces={device.interfaces ?? []}
           offline={offline}
           led={led}
         />
         <span className="device-node__hint">&gt;_</span>
       </div>
-
       <span className="device-node__label">{device.name}</span>
-      {subLabel && <span className="device-node__sublabel">{subLabel}</span>}
+      <span className="device-node__sublabel">{subLabel}</span>
     </div>
   );
 }

@@ -1,66 +1,38 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import "./Canvas.css";
-import { DeviceNode }  from "../DeviceNode/DeviceNode";
-import { LinkLine }    from "../Link/LinkLine";
-import { Packet }      from "../Packet/Packet";
+import { DeviceNode }      from "../DeviceNode/DeviceNode";
+import { LinkLine }        from "../Link/LinkLine";
+import { Packet }          from "../Packet/Packet";
+import { InterfacePicker } from "./InterfacePicker";
 
-/**
- * Canvas
- * Full-screen board. Responsibilities:
- *   - Render all devices and links
- *   - Handle drop from sidebar → addDevice
- *   - Handle device drag (move)
- *   - Handle link-drawing mode (click device A then device B)
- *   - Handle device click → open CLI
- *   - Render animated packet
- *
- * Props:
- *   devices, links, leds, packet
- *   onAddDevice(type, x, y)
- *   onMoveDevice(id, x, y)
- *   onAddLink(fromId, toId)
- *   onRemoveLink(linkId)
- *   onDevicePress(deviceId)
- */
 export function Canvas({
-  devices,
-  links,
-  leds,
-  packet,
-  onAddDevice,
-  onMoveDevice,
-  onAddLink,
-  onRemoveLink,
-  onDevicePress,
+  devices, links, leds, packet,
+  onAddDevice, onMoveDevice, onAddLink, onRemoveLink, onDevicePress,
 }) {
-  const canvasRef  = useRef(null);
-  const [mode, setMode]               = useState("select"); // "select" | "link" | "delete"
-  const [dragId, setDragId]           = useState(null);
-  const [dragOffset, setDragOffset]   = useState({ x: 0, y: 0 });
+  const canvasRef = useRef(null);
+  const [mode, setMode]             = useState("select");
+  const [dragId, setDragId]         = useState(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isDropTarget, setIsDropTarget] = useState(false);
-  const [linkFrom, setLinkFrom]       = useState(null);   // first device in link mode
-  const [mousePos, setMousePos]       = useState({ x: 0, y: 0 });
+  const [mousePos, setMousePos]     = useState({ x: 0, y: 0 });
   const [selectedLink, setSelectedLink] = useState(null);
 
-  // ── Canvas coordinate helper ───────────────────────────────────────────
+  // Link drawing: two-step — pick source interface then dest interface
+  const [linkStep, setLinkStep] = useState(null);
+  // linkStep: null | { fromId, fromIface } | { fromId, fromIface, toId (pending dest picker) }
+  const [picker, setPicker]     = useState(null);
+  // picker: null | { deviceId, step: "from"|"to" }
+
   const toCanvas = useCallback((clientX, clientY) => {
     const rect = canvasRef.current.getBoundingClientRect();
     return { x: clientX - rect.left, y: clientY - rect.top };
   }, []);
 
-  // ── Drag from sidebar (HTML5 drop) ────────────────────────────────────
-  const handleDragOver = useCallback((e) => {
-    e.preventDefault();
-    setIsDropTarget(true);
-  }, []);
-
-  const handleDragLeave = useCallback(() => {
-    setIsDropTarget(false);
-  }, []);
-
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    setIsDropTarget(false);
+  // ── Sidebar drop ──────────────────────────────────────────────────────
+  const handleDragOver  = useCallback(e => { e.preventDefault(); setIsDropTarget(true); }, []);
+  const handleDragLeave = useCallback(() => setIsDropTarget(false), []);
+  const handleDrop      = useCallback(e => {
+    e.preventDefault(); setIsDropTarget(false);
     const type = e.dataTransfer.getData("device-type");
     if (!type) return;
     const { x, y } = toCanvas(e.clientX, e.clientY);
@@ -77,70 +49,78 @@ export function Canvas({
     e.preventDefault();
   }, [mode, devices, toCanvas]);
 
-  const handleMouseMove = useCallback((e) => {
+  const handleMouseMove = useCallback(e => {
     const pos = toCanvas(e.clientX, e.clientY);
     setMousePos(pos);
-    if (dragId) {
-      onMoveDevice(dragId, pos.x - dragOffset.x, pos.y - dragOffset.y);
-    }
+    if (dragId) onMoveDevice(dragId, pos.x - dragOffset.x, pos.y - dragOffset.y);
   }, [dragId, dragOffset, toCanvas, onMoveDevice]);
 
-  const handleMouseUp = useCallback(() => {
-    setDragId(null);
-  }, []);
+  const handleMouseUp = useCallback(() => setDragId(null), []);
 
-  // ── Device click (configure or link) ──────────────────────────────────
-  const handleDevicePress = useCallback((id) => {
+  // ── Device click ──────────────────────────────────────────────────────
+  const handleDevicePress = useCallback(id => {
+    if (mode === "delete") { onDevicePress?.(`__delete__${id}`); return; }
+
     if (mode === "link") {
-      if (!linkFrom) {
-        setLinkFrom(id);
-      } else if (linkFrom !== id) {
-        onAddLink(linkFrom, id);
-        setLinkFrom(null);
+      if (!linkStep) {
+        // Étape 1 : choisir l'interface source
+        setPicker({ deviceId: id, step: "from" });
+      } else if (linkStep.fromId !== id) {
+        // Étape 2 : choisir l'interface dest
+        setPicker({ deviceId: id, step: "to" });
       } else {
-        setLinkFrom(null); // cancel
+        // Clic sur le même device → annuler
+        setLinkStep(null); setPicker(null);
       }
       return;
     }
-    if (mode === "delete") {
-      // delete device — parent handles it
-      onDevicePress?.(`__delete__${id}`);
-      return;
-    }
-    // select mode → open CLI
-    onDevicePress?.(id);
-  }, [mode, linkFrom, onAddLink, onDevicePress]);
 
-  // ── Link click ─────────────────────────────────────────────────────────
-  const handleLinkPress = useCallback((linkId) => {
-    if (mode === "delete") {
-      onRemoveLink(linkId);
-      setSelectedLink(null);
-      return;
+    onDevicePress?.(id);
+  }, [mode, linkStep, onDevicePress]);
+
+  // ── Interface picker callbacks ────────────────────────────────────────
+  const handlePickerPick = useCallback((deviceId, ifaceName) => {
+    if (!picker) return;
+
+    if (picker.step === "from") {
+      setLinkStep({ fromId: deviceId, fromIface: ifaceName });
+      setPicker(null);
+    } else if (picker.step === "to" && linkStep) {
+      const result = onAddLink(linkStep.fromId, linkStep.fromIface, deviceId, ifaceName);
+      // Que la connexion réussisse ou non, on reset (le monitor affiche l'erreur)
+      setLinkStep(null);
+      setPicker(null);
     }
-    setSelectedLink((prev) => (prev === linkId ? null : linkId));
+  }, [picker, linkStep, onAddLink]);
+
+  const handlePickerCancel = useCallback(() => {
+    setPicker(null);
+    if (picker?.step === "to") { /* keep linkStep so user can retry */ }
+    else setLinkStep(null);
+  }, [picker]);
+
+  // ── Link click ────────────────────────────────────────────────────────
+  const handleLinkPress = useCallback(linkId => {
+    if (mode === "delete") { onRemoveLink(linkId); setSelectedLink(null); return; }
+    setSelectedLink(prev => prev === linkId ? null : linkId);
   }, [mode, onRemoveLink]);
 
-  // ── Cancel link mode on Escape ─────────────────────────────────────────
+  // ── Keyboard shortcuts ────────────────────────────────────────────────
   useEffect(() => {
-    const h = (e) => {
+    const h = e => {
       if (e.key === "Escape") {
-        setLinkFrom(null);
-        setSelectedLink(null);
+        setLinkStep(null); setPicker(null); setSelectedLink(null);
         if (mode !== "select") setMode("select");
       }
-      if (e.key === "Delete" && selectedLink) {
-        onRemoveLink(selectedLink);
-        setSelectedLink(null);
-      }
+      if (e.key === "Delete" && selectedLink) { onRemoveLink(selectedLink); setSelectedLink(null); }
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [mode, selectedLink, onRemoveLink]);
 
-  const linkFromDevice = linkFrom ? devices[linkFrom] : null;
-  const deviceList     = Object.values(devices);
-  const linkList       = Object.values(links);
+  const deviceList = Object.values(devices);
+  const linkList   = Object.values(links);
+  const linkFromDev = linkStep ? devices[linkStep.fromId] : null;
 
   return (
     <div
@@ -151,9 +131,8 @@ export function Canvas({
       onDrop={handleDrop}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
-      onClick={() => { setSelectedLink(null); if (mode === "link" && linkFrom) setLinkFrom(null); }}
+      onClick={() => { setSelectedLink(null); }}
     >
-      {/* Empty state */}
       {deviceList.length === 0 && (
         <div className="canvas__empty">
           <div className="canvas__empty-icon">⬡</div>
@@ -161,119 +140,105 @@ export function Canvas({
         </div>
       )}
 
-      {/* SVG layer — links + ghost + packet */}
-      <svg
-        className={`canvas__svg${mode !== "select" ? " canvas__svg--interactive" : ""}`}
-        style={{ pointerEvents: "none" }}
-      >
-        {/* Links */}
-        {linkList.map((link) => (
-          <LinkLine
-            key={link.id}
-            link={link}
-            devices={devices}
-            selected={link.id === selectedLink}
-            onPress={handleLinkPress}
-          />
+      {/* SVG layer — links + packet */}
+      <svg style={{ position:"absolute", top:0, left:0, width:"100%", height:"100%", pointerEvents:"none", overflow:"visible" }}>
+        {linkList.map(link => (
+          <LinkLine key={link.id} link={link} devices={devices}
+            selected={link.id === selectedLink} onPress={handleLinkPress}/>
         ))}
-
-        {/* Ghost link while drawing */}
-        {linkFromDevice && (
-          <line
-            className="canvas__link-ghost"
-            x1={linkFromDevice.x} y1={linkFromDevice.y}
-            x2={mousePos.x}       y2={mousePos.y}
-          />
+        {/* Ghost line while drawing */}
+        {linkFromDev && !picker && (
+          <line className="canvas__link-ghost"
+            x1={linkFromDev.x} y1={linkFromDev.y}
+            x2={mousePos.x}    y2={mousePos.y}/>
         )}
-
-        {/* Animated packet */}
-        <Packet
-          x={packet.x} y={packet.y}
-          type={packet.type}
-          visible={packet.visible}
-        />
+        <Packet x={packet.x} y={packet.y} type={packet.type} visible={packet.visible}/>
       </svg>
 
-      {/* SVG layer with pointer events for link clicks */}
-      <svg
-        style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}
-      >
-        {linkList.map((link) => {
-          const from = devices[link.from];
-          const to   = devices[link.to];
+      {/* SVG hit areas for links */}
+      <svg style={{ position:"absolute", top:0, left:0, width:"100%", height:"100%", pointerEvents:"none", overflow:"visible" }}>
+        {linkList.map(link => {
+          const from = devices[link.from?.deviceId ?? link.from];
+          const to   = devices[link.to?.deviceId   ?? link.to];
           if (!from || !to) return null;
           return (
-            <line key={link.id + "-hit"}
+            <line key={link.id+"-hit"}
               x1={from.x} y1={from.y} x2={to.x} y2={to.y}
-              stroke="transparent" strokeWidth="12"
-              style={{ pointerEvents: "all", cursor: "pointer" }}
-              onClick={(e) => { e.stopPropagation(); handleLinkPress(link.id); }}
+              stroke="transparent" strokeWidth="14"
+              style={{ pointerEvents:"all", cursor:"pointer" }}
+              onClick={e => { e.stopPropagation(); handleLinkPress(link.id); }}
             />
           );
         })}
       </svg>
 
       {/* Device nodes */}
-      {deviceList.map((dev) => (
-        <DeviceNode
-          key={dev.id}
-          device={dev}
+      {deviceList.map(dev => (
+        <DeviceNode key={dev.id} device={dev}
           led={leds[dev.id] ?? "idle"}
-          selected={linkFrom === dev.id}
+          selected={linkStep?.fromId === dev.id}
           onDragStart={handleDeviceDragStart}
-          onPress={handleDevicePress}
-        />
+          onPress={handleDevicePress}/>
       ))}
 
-      {/* Canvas toolbar */}
+      {/* Interface picker popup */}
+      {picker && devices[picker.deviceId] && (
+        <InterfacePicker
+          device={devices[picker.deviceId]}
+          x={devices[picker.deviceId].x}
+          y={devices[picker.deviceId].y}
+          onPick={handlePickerPick}
+          onCancel={handlePickerCancel}
+          excludeLinked={true}
+          links={links}
+          filterCompatibleWith={
+            picker.step === "to" && linkStep
+              ? (devices[linkStep.fromId]?.interfaces ?? []).find(i => i.name === linkStep.fromIface)?.type ?? null
+              : null
+          }
+        />
+      )}
+
+      {/* Toolbar */}
       <div className="canvas__toolbar">
-        <button
-          className={`canvas__tool-btn${mode === "select" ? " canvas__tool-btn--active" : ""}`}
-          onClick={(e) => { e.stopPropagation(); setMode("select"); setLinkFrom(null); }}
-          title="Mode sélection"
-        >
+        <button className={`canvas__tool-btn${mode==="select"?" canvas__tool-btn--active":""}`}
+          onClick={e => { e.stopPropagation(); setMode("select"); setLinkStep(null); setPicker(null); }}>
           ↖ Select
         </button>
-        <button
-          className={`canvas__tool-btn${mode === "link" ? " canvas__tool-btn--active" : ""}`}
-          onClick={(e) => { e.stopPropagation(); setMode(m => m === "link" ? "select" : "link"); setLinkFrom(null); }}
-          title="Dessiner un câble entre deux devices"
-        >
+        <button className={`canvas__tool-btn${mode==="link"?" canvas__tool-btn--active":""}`}
+          onClick={e => { e.stopPropagation(); setMode(m => m==="link"?"select":"link"); setLinkStep(null); setPicker(null); }}>
           ─ Câble
         </button>
-        <button
-          className={`canvas__tool-btn canvas__tool-btn--danger${mode === "delete" ? " canvas__tool-btn--active" : ""}`}
-          onClick={(e) => { e.stopPropagation(); setMode(m => m === "delete" ? "select" : "delete"); setLinkFrom(null); }}
-          title="Supprimer device ou câble"
-        >
+        <button className={`canvas__tool-btn canvas__tool-btn--danger${mode==="delete"?" canvas__tool-btn--active":""}`}
+          onClick={e => { e.stopPropagation(); setMode(m => m==="delete"?"select":"delete"); setLinkStep(null); setPicker(null); }}>
           ✕ Suppr
         </button>
       </div>
 
-      {/* Link mode status bar */}
+      {/* Status bar */}
       {mode === "link" && (
         <div style={{
-          position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)",
-          fontFamily: "JetBrains Mono, monospace", fontSize: 11,
-          padding: "5px 14px", borderRadius: 6,
-          background: "rgba(10,14,18,0.9)", border: "1px solid #378ADD",
-          color: "#79c0ff", pointerEvents: "none",
+          position:"absolute", bottom:12, left:"50%", transform:"translateX(-50%)",
+          fontFamily:"JetBrains Mono,monospace", fontSize:11,
+          padding:"5px 14px", borderRadius:6,
+          background:"rgba(10,14,18,0.92)", border:"1px solid #378ADD",
+          color:"#79c0ff", pointerEvents:"none", whiteSpace:"nowrap",
         }}>
-          {linkFrom
-            ? `Cliquez sur la destination pour câbler depuis ${devices[linkFrom]?.name}`
-            : "Cliquez sur le device source"}
+          {!linkStep
+            ? "Cliquez sur le device source"
+            : `Source: ${devices[linkStep.fromId]?.name} [${linkStep.fromIface}] — cliquez sur la destination`}
           {" · Échap pour annuler"}
         </div>
       )}
       {mode === "delete" && (
         <div style={{
-          position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)",
-          fontFamily: "JetBrains Mono, monospace", fontSize: 11,
-          padding: "5px 14px", borderRadius: 6,
-          background: "rgba(10,14,18,0.9)", border: "1px solid #5a1a1a",
-          color: "#f85149", pointerEvents: "none",
+          position:"absolute", bottom:12, left:"50%", transform:"translateX(-50%)",
+          fontFamily:"JetBrains Mono,monospace", fontSize:11,
+          padding:"5px 14px", borderRadius:6,
+          background:"rgba(10,14,18,0.92)", border:"1px solid #5a1a1a",
+          color:"#f85149", pointerEvents:"none",
         }}>
-          Cliquez sur un device ou un câble pour le supprimer · Échap pour annuler
+          Cliquez sur un device ou un câble · Échap pour annuler
         </div>
       )}
     </div>

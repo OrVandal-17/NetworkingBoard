@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { sleep, rand, ease, formatRtt } from "../utils/ping";
-import { validateRoute } from "../utils/network";
+import { validateRoute, findSourceInterface } from "../utils/network";
 
 const INITIAL_PACKET = { x: 0, y: 0, visible: false, type: "ping" };
 
@@ -11,14 +11,14 @@ export function usePing({ devices, onLed }) {
 
   const animatePacket = useCallback(
     (fromId, toId, type) =>
-      new Promise((resolve) => {
+      new Promise(resolve => {
         const from = devices[fromId];
         const to   = devices[toId];
         if (!from || !to) { resolve(); return; }
         const duration = 700;
         const start    = performance.now();
         onLed(fromId, "tx");
-        const step = (now) => {
+        const step = now => {
           const t = Math.min((now - start) / duration, 1);
           const e = ease(t);
           const x = from.x + (to.x - from.x) * e;
@@ -27,7 +27,7 @@ export function usePing({ devices, onLed }) {
           if (t < 1) {
             rafRef.current = requestAnimationFrame(step);
           } else {
-            setPacket((p) => ({ ...p, visible: false }));
+            setPacket(p => ({ ...p, visible: false }));
             onLed(fromId, "idle");
             onLed(toId, "rx");
             setTimeout(() => { onLed(toId, "idle"); resolve(); }, 150);
@@ -43,30 +43,42 @@ export function usePing({ devices, onLed }) {
       if (running) return;
       const src = devices[srcId];
       if (!src) { onLog("Device source introuvable.", "err"); return; }
+      if (src.type === "switch") { onLog("Les switches L2 ne font pas de ping.", "err"); return; }
 
-      const dst = Object.values(devices).find(
-        (d) => d.ip === dstIp?.trim() || d.id === dstIp?.trim()
+      // Résoudre la destination par IP
+      const dst = Object.values(devices).find(d =>
+        (d.interfaces ?? []).some(i => i.ip === dstIp?.trim()) || d.id === dstIp?.trim()
       );
 
-      const target = dst ?? {
-        id: null, name: dstIp, ip: dstIp?.trim(),
-        status: "online", prefix: src.prefix ?? 24,
-      };
+      if (!dst) {
+        // Vérifier quand même si c'est un problème de réseau
+        const srcIface = findSourceInterface(src, dstIp?.trim() ?? "");
+        if (!srcIface) {
+          const nets = (src.interfaces ?? [])
+            .filter(i => i.ip && i.status === "up")
+            .map(i => `${i.ip}/${i.prefix}`).join(", ");
+          onLog(`ping: Réseau inaccessible — ${dstIp}`, "err");
+          onLog(`  Interfaces UP: ${nets || "aucune"}`, "err");
+        } else {
+          onLog(`ping: Hôte ${dstIp} inconnu sur le board`, "err");
+        }
+        return;
+      }
 
-      const { ok, reason } = validateRoute(src, target);
+      const { ok, reason, srcIface, dstIface } = validateRoute(src, dst, dstIp?.trim());
       if (!ok) { onLog(`ping: ${reason}`, "err"); return; }
-      if (!dst) { onLog(`ping: Hôte ${dstIp} inaccessible (inconnu sur le board)`, "err"); return; }
       if (dst.id === srcId) { onLog("ping: source et destination identiques.", "err"); return; }
 
       setRunning(true);
       const n = Math.min(count, 10);
+
       onLog("", "");
-      onLog(`PING ${target.ip} (${dst.name}) depuis ${src.ip}`, "cmd");
-      onLog(`${n} paquets, ttl=${ttl}`, "info");
+      onLog(`PING ${dstIp} (${dst.name}) depuis ${srcIface.name} [${srcIface.ip}]`, "cmd");
+      onLog(`${n} paquets, ttl=${ttl}, via ${srcIface.name} → ${dstIface.name}`, "info");
       onLog("", "");
 
       let received = 0;
-      const times = [];
+      const times  = [];
 
       for (let i = 1; i <= n; i++) {
         await sleep(350);
@@ -78,7 +90,7 @@ export function usePing({ devices, onLed }) {
           await animatePacket(dst.id, srcId, "echo");
           received++;
           times.push(ms);
-          onLog(`64 bytes de ${target.ip}: icmp_seq=${i} ttl=${ttl} time=${ms} ms`, "ok");
+          onLog(`64 bytes de ${dstIp}: icmp_seq=${i} ttl=${ttl} time=${ms} ms`, "ok");
         } else {
           onLed(srcId, "tx");
           await sleep(300);
@@ -90,7 +102,7 @@ export function usePing({ devices, onLed }) {
 
       const loss = Math.round(((n - received) / n) * 100);
       onLog("", "");
-      onLog(`--- ${target.ip} ping statistiques ---`, "stat");
+      onLog(`--- ${dstIp} ping statistiques ---`, "stat");
       onLog(`${n} paquets transmis, ${received} reçus, ${loss}% perte`, "stat");
       const rttLine = formatRtt(times);
       if (rttLine) onLog(rttLine, "stat");

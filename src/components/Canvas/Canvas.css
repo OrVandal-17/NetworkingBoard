@@ -97,3 +97,83 @@
   color: #f85149;
   border-color: #5a1a1a;
 }
+
+/* ── InterfacePicker ─────────────────────────────────────────────────── */
+.ifpicker {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  margin-top: -12px;
+  background: #080d12;
+  border: 1px solid #1e3a52;
+  border-radius: 8px;
+  padding: 8px 0;
+  min-width: 200px;
+  z-index: 50;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.7), 0 0 0 1px #0d2540;
+  font-family: "JetBrains Mono", monospace;
+  outline: none;
+}
+
+.ifpicker__title {
+  font-size: 9px;
+  color: #2a4a60;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 0 12px 6px;
+  border-bottom: 1px solid #0f1e2a;
+  margin-bottom: 4px;
+}
+
+.ifpicker__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: "JetBrains Mono", monospace;
+  transition: background .1s;
+}
+.ifpicker__item:hover { background: rgba(55,138,221,.08); }
+
+.ifpicker__dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ifpicker__name {
+  font-size: 11px;
+  color: #79c0ff;
+  font-weight: 600;
+  flex: 1;
+  text-align: left;
+}
+
+.ifpicker__ip {
+  font-size: 9px;
+  color: #3a5060;
+}
+
+.ifpicker__empty {
+  font-size: 10px;
+  color: #3a5060;
+  padding: 8px 12px;
+}
+
+.ifpicker__cancel {
+  display: block;
+  width: calc(100% - 24px);
+  margin: 6px 12px 0;
+  padding: 4px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  color: #3a5060;
+  background: none;
+  border: 1px solid #1a2530;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.ifpicker__cancel:hover { color: #f85149; border-color: #5a1a1a; }
